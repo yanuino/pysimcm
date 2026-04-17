@@ -1,64 +1,85 @@
-# Python Project Template
+# pysimcm
 
-![CI](https://github.com/yanuino/python-project-template/actions/workflows/ci.yml/badge.svg)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
+`pysimcm` is a Python rewrite of [simcm](https://github.com/jze2/simcm) using `pyscard`.
 
-Opinionated Python project template using **uv**, **Ruff**, **pre-commit**, and **GitHub Actions**.
+## Project goal
 
----
+Build a maintainable Python CLI and library for SIM card management.
 
-## Purpose
+## First milestone: SIM phonebook management
 
-This repository is a **GitHub template** intended to bootstrap modern Python projects with:
+The current milestone provides a backend-agnostic phonebook domain API and a CLI
+for contact management operations:
 
-- Fast dependency management (`uv`)
-- Deterministic code quality (`ruff`, `pre-commit`)
-- Clear CI responsibilities
-- Optional documentation and binary release workflows
+- list contacts
+- get one contact by index
+- add a contact
+- update a contact
+- delete a contact
 
-This template favors **clarity, explicitness, and maintainability** over complex automation.
+The current CLI uses an in-memory backend to validate behavior and workflows.
+This is intentionally structured so a real `pyscard` backend can be plugged in
+without changing command semantics.
 
----
+## Usage
 
-## Using the template
+Run as module (SIM backend by default):
 
-1. Click **Use this template** on GitHub
-2. Create your new repository
-3. Clone it locally
-4. Run the setup script
+```bash
+uv run python -m pysimcm list
+```
 
----
+Or with the console script:
 
-## Development setup
+```bash
+uv run pysimcm readers
+uv run pysimcm verify-pin 1234
+uv run pysimcm --pin 1234 list
+uv run pysimcm list
+uv run pysimcm --reader-index 0 get 1
+```
+
+Use the in-memory backend for development without a reader:
+
+```bash
+uv run pysimcm --backend memory list
+uv run pysimcm --backend memory add 1 Alice +12025550123
+uv run pysimcm --backend memory update 1 "Alice A" +12025550999
+uv run pysimcm --backend memory delete 1
+```
+
+Current SIM backend scope:
+
+- implemented: list/get/add/update/delete (MF -> TELECOM -> ADN selection, ADN record reads and UPDATE RECORD writes)
+- `readers` command lists available PC/SC readers by index without requiring a SIM card
+- `verify-pin` command verifies PIN1 using VERIFY CHV (INS 0x20) with 8-byte FF padding
+- `--pin` can be passed with SIM operations to auto-verify and retry when card returns SW 9808 (PIN not verified)
+- name encoding: GSM7 when possible, UCS2 fallback for non-GSM7 names
+- long-name handling: EXT1 chain read/write when EF_EXT1 is available
+- number encoding: BCD with support for digits and `*`, `#`, `p`, `w`, `e`
+
+## Development
 
 ### Prerequisites
 
-- Git
-- Python **3.11+**
-- `uv` — https://github.com/astral-sh/uv
+- Python 3.11+
+- `uv` (https://github.com/astral-sh/uv)
 
-### Linux / macOS / WSL
+### Setup
+
+Linux / macOS / WSL:
 
 ```bash
 ./scripts/dev-setup.sh
 ```
 
-### Windows (PowerShell)
+Windows PowerShell:
 
 ```powershell
 .\scripts\dev-setup.ps1
 ```
 
-If script execution is restricted:
-
-```powershell
-PowerShell -ExecutionPolicy Bypass -File scripts\dev-setup.ps1
-```
-
----
-
-## Common commands
+### Common commands
 
 ```bash
 uv run ruff check . --fix
@@ -66,56 +87,16 @@ uv run ruff format .
 uv run pytest
 ```
 
----
+### Contributing guidelines
 
-## Code quality philosophy
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development and review expectations.
 
-- **pre-commit** enforces fast, deterministic checks (lint, format)
-- **pytest** runs in CI, not on every commit
-- CI is the **authority**, not the developer machine
-- Heavy or OS-specific builds are CI-only
+### Project notes and Copilot instructions
 
----
+- Project notes: [PROJECT_NOTES.md](PROJECT_NOTES.md)
+- Copilot repo instructions: [.github/copilot-instructions.md](.github/copilot-instructions.md)
 
-## Documentation
+## Documentation and releases
 
-Documentation uses **MkDocs**.
-
-- Validated locally via pre-commit (`mkdocs build --strict`)
-- Fully built in CI
-- Optional publication during release
-See [README.mkdocs.md](README.mkdocs.md) for details.
-
----
-
-## Releases
-
-Releases are driven by Git tags (`vX.Y.Z`).
-
-During a release:
-
-- Documentation is built
-- Documentation publication is optional
-- Linux and/or Windows binaries may be built using PyInstaller
-
-All release logic is handled by GitHub Actions.
-See [README.release-workflow.md](README.release-workflow.md) for details.
-
----
-
-## Tooling upgrades
-
-Tool versions are intentionally pinned.
-
-Upgrades must:
-
-- Update versions explicitly
-- Apply Ruff formatting and fixes
-- Update pre-commit hooks
-- Commit all generated changes
-
----
-
-## License
-
-MIT
+- MkDocs setup: [README.mkdocs.md](README.mkdocs.md)
+- Release workflow: [README.release-workflow.md](README.release-workflow.md)

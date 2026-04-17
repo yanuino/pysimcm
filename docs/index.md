@@ -1,57 +1,26 @@
-# Project Documentation
+# pysimcm Documentation
 
-Welcome to the project documentation.
+`pysimcm` aims to rewrite `simcm` in Python with `pyscard`.
 
-This documentation is built using **MkDocs** and is intended to provide:
+## Current status
 
-- an overview of the project
-- usage and configuration guidance
-- API reference documentation (when applicable)
+The first implemented milestone is phonebook management.
 
----
+Implemented capabilities:
 
-## Getting started
+- contact domain model
+- backend contract for storage/access
+- in-memory backend for development and tests
+- pyscard SIM backend selecting MF/TELECOM/ADN and reading/writing ADN records
+- GSM7/UCS2 name encoding and decoding
+- EF_EXT1 chain logic for long-name overflow when available
+- CLI backend switch (`sim` default, `memory` fallback)
+- CLI commands for list/get/add/update/delete
+- `readers` command to list available PC/SC readers by index
+- `verify-pin` command for PIN1 verification via VERIFY CHV APDU
+- `--pin` option for non-interactive PIN1 verification retry on SW 9808
 
-This project uses an opinionated Python setup with:
+## Next implementation target
 
-- `uv` for dependency management
-- `Ruff` for linting and formatting
-- `pytest` for testing
-
-Refer to the repository **README** for development setup instructions.
-
----
-
-## Documentation structure
-
-Documentation sources are located in the `docs/` directory.
-
-Typical sections include:
-
-- project overview
-- user guides
-- API reference
-- development notes
-
-Additional pages can be added by creating Markdown files under `docs/` and
-registering them in `mkdocs.yml`.
-
----
-
-## API reference
-
-If enabled, API documentation is generated automatically from source code
-docstrings using **mkdocstrings**.
-
----
-
-## Versioning and releases
-
-Documentation is built in **strict mode**, meaning warnings are treated as errors.
-
-During releases:
-
-- documentation is always built
-- publication is optional and handled via CI
-
-Refer to the release documentation for details.
+Harden SIM write behavior for more card-specific edge cases, including EXT1 full-slots
+degradation and card-type detection (GSM SIM vs UICC).

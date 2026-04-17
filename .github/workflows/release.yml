@@ -35,8 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: release-linux
     env:
-      PYINSTALLER_MODULE: project
-      PYINSTALLER_NAME: project
+      PYINSTALLER_MODULE: pysimcm
+      PYINSTALLER_NAME: pysimcm
 
     steps:
       - uses: actions/checkout@v6
@@ -57,8 +57,8 @@ jobs:
     runs-on: windows-latest
     environment: release-windows
     env:
-      PYINSTALLER_MODULE: project
-      PYINSTALLER_NAME: project
+      PYINSTALLER_MODULE: pysimcm
+      PYINSTALLER_NAME: pysimcm
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6

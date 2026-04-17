@@ -3,16 +3,17 @@ requires = ["hatchling>=1.25.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "python-template"
+name = "pysimcm"
 version = "0.1.0"
-description = "Add your description here"
+description = "Python Smart Card Manager"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "pyscard>=2.3.1",
+]
 
-# Uncomment if you want: uv run project
-# [project.scripts]
-# project = "project.__main__:main"
+[project.scripts]
+pysimcm = "pysimcm.__main__:main"
 
 [dependency-groups]
 dev = [
@@ -28,7 +29,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/project"]
+packages = ["src/pysimcm"]
 
 [tool.uv]
 package = true
