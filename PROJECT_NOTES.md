@@ -26,6 +26,7 @@ pysimcm is a Python rewrite of simcm using pyscard, focused first on SIM phonebo
   - Read ADN records with READ RECORD
   - Write/delete ADN records with UPDATE RECORD
   - Verify PIN1 with VERIFY CHV (INS 0x20, CHV1 in P2=0x01)
+  - Decode and encode TON/NPI alongside phone numbers
   - Encode/decode names with GSM7 and UCS2 fallback
   - Use EF_EXT1 chain for long names when EXT1 is available
   - Encode/decode BCD numbers with extended symbols (`*`, `#`, `p`, `w`, `e`)
@@ -36,7 +37,9 @@ pysimcm is a Python rewrite of simcm using pyscard, focused first on SIM phonebo
 - Memory fallback is available with --backend memory.
 - Reader selection is available with --reader-index.
 - PIN1 verification is available with `verify-pin` (SIM backend only).
-- `--pin` enables non-interactive auto-verify/retry when operations hit SW 9808.
+- `--pin` enables non-interactive auto-verify/retry when operations hit SW 9808, 9804, or 6982.
+- `export-csv` writes header `name,number,ton,npi`.
+- `import-csv` is a sequential ADN writer and requires an empty phonebook before writing.
 
 ## Development Rules (source of truth)
 
@@ -58,4 +61,4 @@ uv run pytest
 ## Next Priorities
 
 1. Expand tests for more card-specific write edge cases (EXT1 full slots, UICC CLA).
-2. Keep docs aligned with behavior after each change.
+2. Consider USIM/ADF-based phonebook selection beyond DF_TELECOM fallback.

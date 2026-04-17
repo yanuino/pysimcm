@@ -181,7 +181,9 @@ def test_upsert_contact_updates_one_record() -> None:
     connection = FakeConnection(script)
     backend = SimPhonebookBackend(connection=connection)
 
-    stored = backend.upsert_contact(Contact(index=1, name="ALICE", number="+12345"))
+    stored = backend.upsert_contact(
+        Contact(index=1, name="ALICE", number="+12345", ton=1, npi=1)
+    )
 
     assert stored.index == 1
     assert stored.name == "ALICE"
@@ -229,6 +231,46 @@ def test_encode_decode_bcd_supports_extended_symbols() -> None:
     assert decoded == "12*#pwe"
 
 
+def test_decode_contact_preserves_ton_npi() -> None:
+    """Decoded SIM contacts should expose TON/NPI from the ADN record."""
+    select_response = _fci(file_size=64, record_length=32)
+    record = _build_adn_record("ALICE", "+12345", record_length=32)
+
+    script = [
+        ([0xA0, 0xA4, 0x00, 0x00, 0x02, 0x3F, 0x00], ([], 0x9F, 0x0F)),
+        ([0xA0, 0xC0, 0x00, 0x00, 0x0F], (select_response, 0x90, 0x00)),
+        ([0xA0, 0xA4, 0x00, 0x00, 0x02, 0x7F, 0x10], ([], 0x9F, 0x0F)),
+        ([0xA0, 0xC0, 0x00, 0x00, 0x0F], (select_response, 0x90, 0x00)),
+        ([0xA0, 0xA4, 0x00, 0x00, 0x02, 0x6F, 0x3A], ([], 0x9F, 0x0F)),
+        ([0xA0, 0xC0, 0x00, 0x00, 0x0F], (select_response, 0x90, 0x00)),
+        ([0xA0, 0xB2, 0x01, 0x04, 0x20], (record, 0x90, 0x00)),
+        ([0xA0, 0xA4, 0x00, 0x00, 0x02, 0x6F, 0x4A], ([], 0x6A, 0x82)),
+    ]
+
+    backend = SimPhonebookBackend(connection=FakeConnection(script))
+    contact = backend.get_contact(1)
+
+    assert contact is not None
+    assert contact.ton == 1
+    assert contact.npi == 1
+
+
+def test_encode_number_accepts_explicit_ton_npi() -> None:
+    """Explicit TON/NPI should override inference when encoding a number."""
+    number_length, ton_npi, bcd = SimPhonebookBackend._encode_number(
+        "0612345678",
+        ton=1,
+        npi=1,
+    )
+
+    assert number_length == 6
+    assert ton_npi == 0x91
+    assert (
+        SimPhonebookBackend._decode_bcd_number(bcd, number_length, ton_npi)
+        == "+0612345678"
+    )
+
+
 def test_long_name_uses_ext1_chain_when_available() -> None:
     """Long names should overflow into EXT1 and set ADN pointer byte."""
     adn_response = _fci(file_size=64, record_length=32)
@@ -266,7 +308,9 @@ def test_long_name_uses_ext1_chain_when_available() -> None:
     ]
 
     backend = SimPhonebookBackend(connection=FakeConnection(script))
-    written = backend.upsert_contact(Contact(index=1, name=long_name, number="+12345"))
+    written = backend.upsert_contact(
+        Contact(index=1, name=long_name, number="+12345", ton=1, npi=1)
+    )
 
     assert written.name == long_name
     assert written.number == "+12345"

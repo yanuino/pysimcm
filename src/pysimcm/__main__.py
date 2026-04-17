@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 
+from .csv_phonebook import read_contacts_csv, write_contacts_csv
 from .phonebook import InMemoryPhonebookBackend, PhonebookManager
 from .sim_backend import SimPhonebookBackend
 
@@ -53,6 +54,18 @@ def build_parser() -> argparse.ArgumentParser:
     verify_pin_parser.add_argument("pin", help="PIN1 code (4-8 digits)")
 
     subparsers.add_parser("list", help="List all contacts")
+
+    export_parser = subparsers.add_parser(
+        "export-csv",
+        help="Export phonebook to CSV with header name,number,ton,npi",
+    )
+    export_parser.add_argument("file_path")
+
+    import_parser = subparsers.add_parser(
+        "import-csv",
+        help="Import CSV sequentially into an empty phonebook",
+    )
+    import_parser.add_argument("file_path")
 
     get_parser = subparsers.add_parser("get", help="Get one contact by index")
     get_parser.add_argument("index", type=int)
@@ -135,6 +148,18 @@ def run(argv: Sequence[str] | None = None) -> int:
                 return 0
             for contact in contacts:
                 print(format_contact(contact.index, contact.name, contact.number))
+            return 0
+
+        if args.command == "export-csv":
+            contacts = manager.list()
+            write_contacts_csv(contacts, args.file_path)
+            print(f"Exported {len(contacts)} contacts to {args.file_path}")
+            return 0
+
+        if args.command == "import-csv":
+            contacts = read_contacts_csv(args.file_path)
+            imported = manager.import_contacts_sequential(contacts)
+            print(f"Imported {imported} contacts from {args.file_path}")
             return 0
 
         if args.command == "get":

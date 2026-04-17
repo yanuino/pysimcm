@@ -6,7 +6,7 @@ connected to a real SIM implementation based on pyscard.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol
 
 
@@ -17,6 +17,8 @@ class Contact:
     index: int
     name: str
     number: str
+    ton: int = 0
+    npi: int = 1
 
 
 class PhonebookBackend(Protocol):
@@ -36,21 +38,10 @@ class PhonebookBackend(Protocol):
 
 
 class InMemoryPhonebookBackend:
-    """Simple backend for local development and testing.
-
-    This backend intentionally mirrors the shape we need for a future SIM-backed
-    implementation while remaining deterministic in tests.
-    """
+    """Simple backend for local development and testing."""
 
     def __init__(self, capacity: int = 250) -> None:
-        """Initialize the in-memory backend.
-
-        Args:
-            capacity: Maximum number of valid phonebook slots.
-
-        Raises:
-            ValueError: If ``capacity`` is not strictly positive.
-        """
+        """Initialize the in-memory backend."""
         if capacity <= 0:
             msg = "capacity must be strictly positive"
             raise ValueError(msg)
@@ -68,16 +59,17 @@ class InMemoryPhonebookBackend:
     def upsert_contact(self, contact: Contact) -> Contact:
         """Insert or replace one contact after validation."""
         self._validate_index(contact.index)
-        self._validate_contact_fields(contact.name, contact.number)
+        self._validate_contact_fields(
+            contact.name,
+            contact.number,
+            contact.ton,
+            contact.npi,
+        )
         self._contacts[contact.index] = contact
         return contact
 
     def delete_contact(self, index: int) -> bool:
-        """Delete one contact by index.
-
-        Returns:
-            ``True`` if a contact existed and was removed, ``False`` otherwise.
-        """
+        """Delete one contact by index."""
         self._validate_index(index)
         return self._contacts.pop(index, None) is not None
 
@@ -87,22 +79,22 @@ class InMemoryPhonebookBackend:
             raise ValueError(msg)
 
     @staticmethod
-    def _validate_contact_fields(name: str, number: str) -> None:
+    def _validate_contact_fields(name: str, number: str, ton: int, npi: int) -> None:
         if not name.strip():
             raise ValueError("name must not be empty")
         if not number.strip():
             raise ValueError("number must not be empty")
+        if ton < 0 or ton > 7:
+            raise ValueError(f"ton must be in [0, 7], got {ton}")
+        if npi < 0 or npi > 15:
+            raise ValueError(f"npi must be in [0, 15], got {npi}")
 
 
 class PhonebookManager:
     """High-level phonebook API used by CLI and future integrations."""
 
     def __init__(self, backend: PhonebookBackend) -> None:
-        """Initialize manager with a concrete phonebook backend.
-
-        Args:
-            backend: Backend implementation used for storage and retrieval.
-        """
+        """Initialize manager with a concrete phonebook backend."""
         self.backend = backend
 
     def list(self) -> list[Contact]:
@@ -116,22 +108,72 @@ class PhonebookManager:
             raise LookupError(f"no contact at index {index}")
         return contact
 
-    def add(self, index: int, name: str, number: str) -> Contact:
+    def add(
+        self,
+        index: int,
+        name: str,
+        number: str,
+        ton: int | None = None,
+        npi: int | None = None,
+    ) -> Contact:
         """Create a new contact and fail if slot already exists."""
         if self.backend.get_contact(index) is not None:
             raise ValueError(f"contact already exists at index {index}")
+        resolved_ton, resolved_npi = self._resolve_ton_npi(number, ton, npi)
         return self.backend.upsert_contact(
-            Contact(index=index, name=name, number=number)
+            Contact(
+                index=index,
+                name=name,
+                number=number,
+                ton=resolved_ton,
+                npi=resolved_npi,
+            )
         )
 
-    def update(self, index: int, name: str, number: str) -> Contact:
+    def update(
+        self,
+        index: int,
+        name: str,
+        number: str,
+        ton: int | None = None,
+        npi: int | None = None,
+    ) -> Contact:
         """Update an existing contact and fail if slot is empty."""
         if self.backend.get_contact(index) is None:
             raise LookupError(f"no contact at index {index}")
+        resolved_ton, resolved_npi = self._resolve_ton_npi(number, ton, npi)
         return self.backend.upsert_contact(
-            Contact(index=index, name=name, number=number)
+            Contact(
+                index=index,
+                name=name,
+                number=number,
+                ton=resolved_ton,
+                npi=resolved_npi,
+            )
         )
 
     def delete(self, index: int) -> bool:
         """Delete a contact and return whether a deletion happened."""
         return self.backend.delete_contact(index)
+
+    def import_contacts_sequential(self, contacts: list[Contact]) -> int:
+        """Write contacts to slots 1..N only when the phonebook is empty."""
+        existing = self.backend.list_contacts()
+        if existing:
+            raise ValueError("CSV import requires an empty phonebook")
+
+        for slot_index, contact in enumerate(contacts, start=1):
+            self.backend.upsert_contact(replace(contact, index=slot_index))
+        return len(contacts)
+
+    @staticmethod
+    def _resolve_ton_npi(
+        number: str,
+        ton: int | None,
+        npi: int | None,
+    ) -> tuple[int, int]:
+        if ton is None:
+            ton = 1 if number.startswith("+") else 0
+        if npi is None:
+            npi = 1
+        return ton, npi

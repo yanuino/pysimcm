@@ -1,7 +1,8 @@
 import pytest
 
 from pysimcm.__main__ import run
-from pysimcm.phonebook import InMemoryPhonebookBackend, PhonebookManager
+from pysimcm.csv_phonebook import read_contacts_csv, write_contacts_csv
+from pysimcm.phonebook import Contact, InMemoryPhonebookBackend, PhonebookManager
 
 
 def test_import_pysimcm() -> None:
@@ -21,6 +22,8 @@ def test_phonebook_crud_flow() -> None:
 
     updated = manager.update(1, "Alice A", "+12025550999")
     assert updated.name == "Alice A"
+    assert updated.ton == 1
+    assert updated.npi == 1
     assert manager.list() == [updated]
 
     assert manager.delete(1) is True
@@ -43,6 +46,58 @@ def test_phonebook_errors() -> None:
 
     with pytest.raises(ValueError):
         manager.add(3, "Out of range", "+33123456789")
+
+
+def test_import_contacts_requires_empty_phonebook() -> None:
+    """Sequential import must fail when the target phonebook is not empty."""
+    manager = PhonebookManager(InMemoryPhonebookBackend(capacity=3))
+    manager.add(1, "Alice", "+12025550123")
+
+    with pytest.raises(ValueError, match="empty phonebook"):
+        manager.import_contacts_sequential([
+            Contact(index=1, name="Bob", number="0612345678", ton=1, npi=1)
+        ])
+
+
+def test_csv_round_trip_with_header_and_ton_npi(
+    tmp_path,
+) -> None:
+    """CSV export/import should preserve header and explicit TON/NPI values."""
+    file_path = tmp_path / "phonebook.csv"
+    contacts = [
+        Contact(index=1, name="Alice", number="+12025550123", ton=1, npi=1),
+        Contact(index=2, name="Bob", number="0612345678", ton=0, npi=1),
+    ]
+
+    write_contacts_csv(contacts, str(file_path))
+    loaded = read_contacts_csv(str(file_path))
+
+    assert [c.name for c in loaded] == ["Alice", "Bob"]
+    assert [c.ton for c in loaded] == [1, 0]
+    assert [c.npi for c in loaded] == [1, 1]
+
+
+def test_csv_import_defaults_ton_npi_when_columns_missing(
+    tmp_path,
+) -> None:
+    """CSV import should default ton/npi to 1/1 when the columns are omitted."""
+    file_path = tmp_path / "import.csv"
+    file_path.write_text("name,number\nAlice,+12025550123\n", encoding="utf-8")
+
+    loaded = read_contacts_csv(str(file_path))
+
+    assert len(loaded) == 1
+    assert loaded[0].ton == 1
+    assert loaded[0].npi == 1
+
+
+def test_csv_import_requires_header(tmp_path) -> None:
+    """CSV import must reject files without the required header."""
+    file_path = tmp_path / "invalid.csv"
+    file_path.write_text("Alice,+12025550123\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="CSV must"):
+        read_contacts_csv(str(file_path))
 
 
 def test_readers_command_lists_readers(capsys: pytest.CaptureFixture[str]) -> None:
@@ -107,6 +162,77 @@ def test_verify_pin_command_rejects_memory_backend(
     out = capsys.readouterr().out
     assert rc == 2
     assert "only available with --backend sim" in out
+
+
+def test_export_csv_command_writes_header_and_rows(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path,
+) -> None:
+    """export-csv should write the canonical header and current contacts."""
+    file_path = tmp_path / "export.csv"
+
+    manager = PhonebookManager(InMemoryPhonebookBackend(capacity=3))
+    manager.add(1, "Alice", "+12025550123")
+    manager.add(2, "Bob", "0612345678")
+
+    from unittest.mock import patch
+
+    with patch("pysimcm.__main__.PhonebookManager", return_value=manager):
+        rc = run(["--backend", "memory", "export-csv", str(file_path)])
+
+    out = capsys.readouterr().out
+    content = file_path.read_text(encoding="utf-8")
+    assert rc == 0
+    assert "Exported 2 contacts" in out
+    assert content.startswith("name,number,ton,npi")
+
+
+def test_import_csv_command_requires_empty_phonebook(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path,
+) -> None:
+    """import-csv should fail when the target phonebook already has ADN records."""
+    file_path = tmp_path / "import.csv"
+    file_path.write_text(
+        "name,number,ton,npi\nAlice,+12025550123,1,1\n",
+        encoding="utf-8",
+    )
+    manager = PhonebookManager(InMemoryPhonebookBackend(capacity=3))
+    manager.add(1, "Existing", "+33123456789")
+
+    from unittest.mock import patch
+
+    with patch("pysimcm.__main__.PhonebookManager", return_value=manager):
+        rc = run(["--backend", "memory", "import-csv", str(file_path)])
+
+    out = capsys.readouterr().out
+    assert rc == 2
+    assert "empty phonebook" in out
+
+
+def test_import_csv_command_writes_sequential_slots(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path,
+) -> None:
+    """import-csv should write rows sequentially into slots 1..N."""
+    file_path = tmp_path / "import.csv"
+    file_path.write_text(
+        "name,number\nAlice,+12025550123\nBob,0612345678\n",
+        encoding="utf-8",
+    )
+    manager = PhonebookManager(InMemoryPhonebookBackend(capacity=3))
+
+    from unittest.mock import patch
+
+    with patch("pysimcm.__main__.PhonebookManager", return_value=manager):
+        rc = run(["--backend", "memory", "import-csv", str(file_path)])
+
+    out = capsys.readouterr().out
+    contacts = manager.list()
+    assert rc == 0
+    assert "Imported 2 contacts" in out
+    assert [contact.index for contact in contacts] == [1, 2]
+    assert [contact.ton for contact in contacts] == [1, 1]
 
 
 def test_list_retries_after_pin_verification_when_sw9808(

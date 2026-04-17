@@ -35,9 +35,25 @@ Or with the console script:
 uv run pysimcm readers
 uv run pysimcm verify-pin 1234
 uv run pysimcm --pin 1234 list
+uv run pysimcm export-csv phonebook.csv
+uv run pysimcm --pin 1234 import-csv phonebook.csv
 uv run pysimcm list
 uv run pysimcm --reader-index 0 get 1
 ```
+
+CSV format:
+
+```csv
+name,number,ton,npi
+Alice,+12025550123,1,1
+Bob,0612345678,0,1
+```
+
+- export always writes the header `name,number,ton,npi`
+- import requires a header with at least `name,number`
+- `ton` and `npi` are optional on import and default to `1` and `1`
+- import is sequential: rows are written to ADN slots `1..N`
+- import requires an empty phonebook and fails if any ADN record already exists
 
 Use the in-memory backend for development without a reader:
 
@@ -51,9 +67,11 @@ uv run pysimcm --backend memory delete 1
 Current SIM backend scope:
 
 - implemented: list/get/add/update/delete (MF -> TELECOM -> ADN selection, ADN record reads and UPDATE RECORD writes)
+- `export-csv` writes phonebook contents with header `name,number,ton,npi`
+- `import-csv` writes CSV rows sequentially to ADN only when the phonebook is empty
 - `readers` command lists available PC/SC readers by index without requiring a SIM card
 - `verify-pin` command verifies PIN1 using VERIFY CHV (INS 0x20) with 8-byte FF padding
-- `--pin` can be passed with SIM operations to auto-verify and retry when card returns SW 9808 (PIN not verified)
+- `--pin` can be passed with SIM operations to auto-verify and retry when card returns SW 9808, 9804, or 6982
 - name encoding: GSM7 when possible, UCS2 fallback for non-GSM7 names
 - long-name handling: EXT1 chain read/write when EF_EXT1 is available
 - number encoding: BCD with support for digits and `*`, `#`, `p`, `w`, `e`

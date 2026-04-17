@@ -504,12 +504,21 @@ class SimPhonebookBackend(PhonebookBackend):
             number_length=number_length,
             ton_npi=ton_npi,
         )
+        ton, npi = self._decode_ton_npi(ton_npi, number_length)
 
         if not name and not number:
             return None
         if not name:
             name = f"slot-{index}"
-        return Contact(index=index, name=name, number=number)
+        return Contact(index=index, name=name, number=number, ton=ton, npi=npi)
+
+    @staticmethod
+    def _decode_ton_npi(ton_npi: int, number_length: int) -> tuple[int, int]:
+        if number_length in (0, 0xFF):
+            return 1, 1
+        ton = (ton_npi >> 4) & 0x07
+        npi = ton_npi & 0x0F
+        return ton, npi
 
     def _extract_ext1_pointer_from_adn(self, record: list[int]) -> int | None:
         self._ensure_ext1_loaded()
@@ -619,7 +628,11 @@ class SimPhonebookBackend(PhonebookBackend):
             alpha = list(alpha_adn) + [0xFF] * (adn_payload_len - len(alpha_adn))
             alpha.append(ext1_ptr)
 
-        number_length, ton_npi, bcd_field = self._encode_number(contact.number)
+        number_length, ton_npi, bcd_field = self._encode_number(
+            contact.number,
+            ton=contact.ton,
+            npi=contact.npi,
+        )
         return alpha + [number_length, ton_npi] + bcd_field + [0xFF, 0xFF]
 
     @classmethod
@@ -661,16 +674,30 @@ class SimPhonebookBackend(PhonebookBackend):
         return bytes(out)
 
     @classmethod
-    def _encode_number(cls, number: str) -> tuple[int, int, list[int]]:
+    def _encode_number(
+        cls,
+        number: str,
+        ton: int | None = None,
+        npi: int | None = None,
+    ) -> tuple[int, int, list[int]]:
         cleaned = number.strip()
         if not cleaned:
             raise ValueError("number must not be empty")
 
-        ton_npi = 0x81
         digits = cleaned
         if digits.startswith("+"):
-            ton_npi = 0x91
             digits = digits[1:]
+
+        if ton is None:
+            ton = 1 if cleaned.startswith("+") else 0
+        if npi is None:
+            npi = 1
+        if ton < 0 or ton > 7:
+            raise ValueError(f"ton must be in [0, 7], got {ton}")
+        if npi < 0 or npi > 15:
+            raise ValueError(f"npi must be in [0, 15], got {npi}")
+
+        ton_npi = 0x80 | ((ton & 0x07) << 4) | (npi & 0x0F)
 
         if not digits:
             raise ValueError("number must contain at least one dialable character")

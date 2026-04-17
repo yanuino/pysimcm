@@ -16,9 +16,11 @@ Implemented capabilities:
 - EF_EXT1 chain logic for long-name overflow when available
 - CLI backend switch (`sim` default, `memory` fallback)
 - CLI commands for list/get/add/update/delete
+- CSV export/import for ADN records with header `name,number,ton,npi`
+- sequential CSV import guarded by an empty-phonebook precondition
 - `readers` command to list available PC/SC readers by index
 - `verify-pin` command for PIN1 verification via VERIFY CHV APDU
-- `--pin` option for non-interactive PIN1 verification retry on SW 9808
+- `--pin` option for non-interactive PIN1 verification retry on SW 9808/9804/6982
 
 ## Next implementation target
 
