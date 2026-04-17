@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "python-template"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+# Uncomment if you want: uv run project
+# [project.scripts]
+# project = "project.__main__:main"
+
+[dependency-groups]
+dev = [
+    "mkdocs<2.0",
+    "mkdocs-git-revision-date-localized-plugin",
+    "mkdocs-macros-plugin",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "pre-commit",
+    "pyinstaller",
+    "pytest",
+    "ruff",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/project"]
+
+[tool.uv]
+package = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+exclude = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "D"]
+ignore = [
+    "D100",
+    "D104",
+    "D203",
+    "D213",
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+preview = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

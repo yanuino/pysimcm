@@ -1,0 +1,39 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+*.pyd
+*.so
+build/
+dist/
+wheels/
+*.egg-info
+.eggs/
+
+# Virtual environments
+.venv
+venv/
+
+# Test
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+
+# Lint
+.mypy_cache/
+.pyright/
+.ruff_cache/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDEs / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Mkdocs
+site/
+
