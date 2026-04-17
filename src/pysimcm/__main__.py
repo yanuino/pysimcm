@@ -118,10 +118,12 @@ def run(argv: Sequence[str] | None = None) -> int:
         print("PIN1 verified")
         return 0
 
+    sim_backend: SimPhonebookBackend | None = None
     if args.backend == "memory":
         backend = InMemoryPhonebookBackend(capacity=args.capacity)
     else:
-        backend = SimPhonebookBackend(reader_index=args.reader_index)
+        sim_backend = SimPhonebookBackend(reader_index=args.reader_index)
+        backend = sim_backend
 
     manager = PhonebookManager(backend)
 
@@ -173,7 +175,8 @@ def run(argv: Sequence[str] | None = None) -> int:
                 print("Error: SIM PIN1 not verified; pass --pin <PIN1> and retry")
                 return 2
             try:
-                backend.verify_pin1(args.provided_pin)
+                assert sim_backend is not None
+                sim_backend.verify_pin1(args.provided_pin)
             except (RuntimeError, ValueError) as pin_exc:
                 print(f"Error: {pin_exc}")
                 return 2
