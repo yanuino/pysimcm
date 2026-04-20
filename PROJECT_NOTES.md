@@ -40,6 +40,7 @@ pysimcm is a Python rewrite of simcm using pyscard, focused first on SIM phonebo
 - `--pin` enables non-interactive auto-verify/retry when operations hit SW 9808, 9804, or 6982.
 - `export-csv` writes header `name,number,ton,npi`.
 - `import-csv` is a sequential ADN writer and requires an empty phonebook before writing.
+- `deleteall` removes all populated ADN records and reports the number of deleted contacts.
 
 ## Development Rules (source of truth)
 

@@ -83,6 +83,8 @@ def build_parser() -> argparse.ArgumentParser:
     delete_parser = subparsers.add_parser("delete", help="Delete a contact")
     delete_parser.add_argument("index", type=int)
 
+    subparsers.add_parser("deleteall", help="Delete all contacts")
+
     return parser
 
 
@@ -188,6 +190,11 @@ def run(argv: Sequence[str] | None = None) -> int:
                 return 0
             print(f"No contact at index {args.index}")
             return 1
+
+        if args.command == "deleteall":
+            deleted = manager.delete_all()
+            print(f"Deleted {deleted} contacts")
+            return 0
 
         parser.error("Unknown command")
         return 2

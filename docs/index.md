@@ -16,6 +16,7 @@ Implemented capabilities:
 - EF_EXT1 chain logic for long-name overflow when available
 - CLI backend switch (`sim` default, `memory` fallback)
 - CLI commands for list/get/add/update/delete
+- CLI command deleteall to clear all populated ADN records
 - CSV export/import for ADN records with header `name,number,ton,npi`
 - sequential CSV import guarded by an empty-phonebook precondition
 - `readers` command to list available PC/SC readers by index

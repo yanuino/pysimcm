@@ -37,6 +37,7 @@ uv run pysimcm verify-pin 1234
 uv run pysimcm --pin 1234 list
 uv run pysimcm export-csv phonebook.csv
 uv run pysimcm --pin 1234 import-csv phonebook.csv
+uv run pysimcm --pin 1234 deleteall
 uv run pysimcm list
 uv run pysimcm --reader-index 0 get 1
 ```

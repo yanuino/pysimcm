@@ -37,3 +37,6 @@ Thumbs.db
 # Mkdocs
 site/
 
+#Project
+*.csv
+

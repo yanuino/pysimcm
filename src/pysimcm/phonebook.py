@@ -156,6 +156,14 @@ class PhonebookManager:
         """Delete a contact and return whether a deletion happened."""
         return self.backend.delete_contact(index)
 
+    def delete_all(self) -> int:
+        """Delete all existing contacts and return how many were removed."""
+        deleted = 0
+        for contact in self.backend.list_contacts():
+            if self.backend.delete_contact(contact.index):
+                deleted += 1
+        return deleted
+
     def import_contacts_sequential(self, contacts: list[Contact]) -> int:
         """Write contacts to slots 1..N only when the phonebook is empty."""
         existing = self.backend.list_contacts()

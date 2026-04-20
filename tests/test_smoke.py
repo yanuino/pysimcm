@@ -235,6 +235,41 @@ def test_import_csv_command_writes_sequential_slots(
     assert [contact.ton for contact in contacts] == [1, 1]
 
 
+def test_deleteall_command_deletes_all_contacts(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Deleteall should remove all contacts and report the deletion count."""
+    manager = PhonebookManager(InMemoryPhonebookBackend(capacity=4))
+    manager.add(1, "Alice", "+12025550123")
+    manager.add(2, "Bob", "0612345678")
+
+    from unittest.mock import patch
+
+    with patch("pysimcm.__main__.PhonebookManager", return_value=manager):
+        rc = run(["--backend", "memory", "deleteall"])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Deleted 2 contacts" in out
+    assert manager.list() == []
+
+
+def test_deleteall_command_on_empty_phonebook(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Deleteall should succeed and report zero deletions when already empty."""
+    manager = PhonebookManager(InMemoryPhonebookBackend(capacity=4))
+
+    from unittest.mock import patch
+
+    with patch("pysimcm.__main__.PhonebookManager", return_value=manager):
+        rc = run(["--backend", "memory", "deleteall"])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Deleted 0 contacts" in out
+
+
 def test_list_retries_after_pin_verification_when_sw9808(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
