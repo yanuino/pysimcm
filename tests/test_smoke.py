@@ -164,6 +164,35 @@ def test_verify_pin_command_rejects_memory_backend(
     assert "only available with --backend sim" in out
 
 
+def test_erase_pin_command_uses_default_pin(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """erase-pin should default to 0000 and report success."""
+    from unittest.mock import patch
+
+    with patch("pysimcm.__main__.SimPhonebookBackend") as backend_cls:
+        backend = backend_cls.return_value
+        backend.disable_pin1.return_value = None
+
+        rc = run(["erase-pin"])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    backend.disable_pin1.assert_called_once_with("0000")
+    assert "PIN1 disabled" in out
+
+
+def test_erase_pin_command_rejects_memory_backend(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """erase-pin is SIM-only and should fail with --backend memory."""
+    rc = run(["--backend", "memory", "erase-pin", "1234"])
+
+    out = capsys.readouterr().out
+    assert rc == 2
+    assert "only available with --backend sim" in out
+
+
 def test_export_csv_command_writes_header_and_rows(
     capsys: pytest.CaptureFixture[str],
     tmp_path,

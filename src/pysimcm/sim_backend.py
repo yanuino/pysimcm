@@ -311,6 +311,33 @@ class SimPhonebookBackend(PhonebookBackend):
 
         raise RuntimeError(f"failed verifying PIN1 (SW={sw1:02X}{sw2:02X})")
 
+    def disable_pin1(self, pin: str) -> None:
+        """Disable PIN1 (CHV1) on the SIM card.
+
+        Uses DISABLE CHV with GSM SIM CLA 0xA0:
+        CLA=0xA0, INS=0x26, P1=0x00, P2=0x01, Lc=0x08, Data=<PIN padded with FF>.
+        """
+        self._connect_if_needed()
+        assert self._connection is not None
+
+        pin_data = self._encode_pin_data(pin)
+        cmd = [0xA0, 0x26, 0x00, 0x01, 0x08, *pin_data]
+        _, sw1, sw2 = self._connection.transmit(cmd)
+
+        if (sw1, sw2) == (0x90, 0x00):
+            return
+
+        sw = (sw1 << 8) | sw2
+        if sw1 == 0x63 and (sw2 & 0xF0) == 0xC0:
+            retries = sw2 & 0x0F
+            raise RuntimeError(f"wrong PIN1, retries remaining: {retries}")
+        if sw == 0x6983:
+            raise RuntimeError("PIN1 is blocked")
+        if sw == 0x6984:
+            raise RuntimeError("PIN1 is already disabled")
+
+        raise RuntimeError(f"failed disabling PIN1 (SW={sw1:02X}{sw2:02X})")
+
     def _ensure_adn_selected(self) -> None:
         if self._layout is not None:
             return

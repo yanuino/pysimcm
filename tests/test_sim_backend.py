@@ -342,6 +342,32 @@ def test_verify_pin1_sends_verify_chv_apdu() -> None:
     connection.assert_consumed()
 
 
+def test_disable_pin1_sends_disable_chv_apdu() -> None:
+    """Disabling PIN1 should send DISABLE CHV with FF-padded PIN bytes."""
+    expected = [
+        0xA0,
+        0x26,
+        0x00,
+        0x01,
+        0x08,
+        0x31,
+        0x32,
+        0x33,
+        0x34,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+    ]
+    script = [(expected, ([], 0x90, 0x00))]
+
+    connection = FakeConnection(script)
+    backend = SimPhonebookBackend(connection=connection)
+    backend.disable_pin1("1234")
+
+    connection.assert_consumed()
+
+
 def test_verify_pin1_rejects_invalid_format_before_apdu() -> None:
     """Invalid PIN format should fail locally before touching card I/O."""
     connection = FakeConnection([])

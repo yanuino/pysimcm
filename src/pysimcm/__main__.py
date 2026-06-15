@@ -53,6 +53,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     verify_pin_parser.add_argument("pin", help="PIN1 code (4-8 digits)")
 
+    erase_pin_parser = subparsers.add_parser(
+        "erase-pin",
+        help="Disable PIN1 on the SIM card",
+    )
+    erase_pin_parser.add_argument(
+        "pin",
+        nargs="?",
+        default="0000",
+        help="PIN1 code (4-8 digits, default: 0000)",
+    )
+
     subparsers.add_parser("list", help="List all contacts")
 
     export_parser = subparsers.add_parser(
@@ -131,6 +142,19 @@ def run(argv: Sequence[str] | None = None) -> int:
             print(f"Error: {exc}")
             return 2
         print("PIN1 verified")
+        return 0
+
+    if args.command == "erase-pin":
+        if args.backend != "sim":
+            print("Error: erase-pin is only available with --backend sim")
+            return 2
+        backend = SimPhonebookBackend(reader_index=args.reader_index)
+        try:
+            backend.disable_pin1(args.pin)
+        except (RuntimeError, ValueError) as exc:
+            print(f"Error: {exc}")
+            return 2
+        print("PIN1 disabled")
         return 0
 
     sim_backend: SimPhonebookBackend | None = None

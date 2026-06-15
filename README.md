@@ -34,6 +34,8 @@ Or with the console script:
 ```bash
 uv run pysimcm readers
 uv run pysimcm verify-pin 1234
+uv run pysimcm erase-pin
+uv run pysimcm erase-pin 1234
 uv run pysimcm --pin 1234 list
 uv run pysimcm export-csv phonebook.csv
 uv run pysimcm --pin 1234 import-csv phonebook.csv
@@ -72,6 +74,7 @@ Current SIM backend scope:
 - `import-csv` writes CSV rows sequentially to ADN only when the phonebook is empty
 - `readers` command lists available PC/SC readers by index without requiring a SIM card
 - `verify-pin` command verifies PIN1 using VERIFY CHV (INS 0x20) with 8-byte FF padding
+- `erase-pin` command disables PIN1 using DISABLE CHV (INS 0x26); it defaults to PIN `0000` when no argument is provided
 - `--pin` can be passed with SIM operations to auto-verify and retry when card returns SW 9808, 9804, or 6982
 - name encoding: GSM7 when possible, UCS2 fallback for non-GSM7 names
 - long-name handling: EXT1 chain read/write when EF_EXT1 is available

@@ -21,6 +21,7 @@ Implemented capabilities:
 - sequential CSV import guarded by an empty-phonebook precondition
 - `readers` command to list available PC/SC readers by index
 - `verify-pin` command for PIN1 verification via VERIFY CHV APDU
+- `erase-pin` command for PIN1 disable via DISABLE CHV APDU, defaulting to PIN `0000`
 - `--pin` option for non-interactive PIN1 verification retry on SW 9808/9804/6982
 
 ## Next implementation target
